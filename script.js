@@ -8,20 +8,30 @@ const RARITY = {
 };
 
 // difficulty: 0(쉬움) ~ 1(어려움) - 릴링 시 얼마나 힘들게 당기는가
+// income: 어항에 넣었을 때 분당 벌어들이는 돈
 const FISH_LIST = [
-  { id: "sardine",  name: "정어리",   icon: "🐟", rarity: "common",   value: 12,  minW: 0.1, maxW: 0.4, difficulty: 0.1 },
-  { id: "bream",    name: "붕어",     icon: "🐠", rarity: "common",   value: 18,  minW: 0.3, maxW: 1.2, difficulty: 0.15 },
-  { id: "mackerel", name: "고등어",   icon: "🐟", rarity: "common",   value: 22,  minW: 0.4, maxW: 1.5, difficulty: 0.2 },
-  { id: "trout",    name: "송어",     icon: "🐡", rarity: "uncommon", value: 45,  minW: 0.8, maxW: 2.5, difficulty: 0.35 },
-  { id: "bass",     name: "농어",     icon: "🐠", rarity: "uncommon", value: 60,  minW: 1.0, maxW: 3.5, difficulty: 0.4 },
-  { id: "eel",      name: "장어",     icon: "🐍", rarity: "uncommon", value: 70,  minW: 0.5, maxW: 2.0, difficulty: 0.5 },
-  { id: "tuna",     name: "참치",     icon: "🐟", rarity: "rare",     value: 150, minW: 5,   maxW: 20,  difficulty: 0.65 },
-  { id: "salmon",   name: "연어",     icon: "🐠", rarity: "rare",     value: 130, minW: 2,   maxW: 8,   difficulty: 0.6 },
-  { id: "shark",    name: "상어",     icon: "🦈", rarity: "legendary",value: 500, minW: 30,  maxW: 120, difficulty: 0.85 },
-  { id: "golden",   name: "황금잉어", icon: "🐉", rarity: "legendary",value: 800, minW: 3,   maxW: 10,  difficulty: 0.9 },
+  { id: "sardine",  name: "정어리",   icon: "🐟", rarity: "common",   value: 12,  minW: 0.1, maxW: 0.4, difficulty: 0.1,  income: 1 },
+  { id: "bream",    name: "붕어",     icon: "🐠", rarity: "common",   value: 18,  minW: 0.3, maxW: 1.2, difficulty: 0.15, income: 1 },
+  { id: "mackerel", name: "고등어",   icon: "🐟", rarity: "common",   value: 22,  minW: 0.4, maxW: 1.5, difficulty: 0.2,  income: 2 },
+  { id: "trout",    name: "송어",     icon: "🐡", rarity: "uncommon", value: 45,  minW: 0.8, maxW: 2.5, difficulty: 0.35, income: 4 },
+  { id: "bass",     name: "농어",     icon: "🐠", rarity: "uncommon", value: 60,  minW: 1.0, maxW: 3.5, difficulty: 0.4,  income: 5 },
+  { id: "eel",      name: "장어",     icon: "🐍", rarity: "uncommon", value: 70,  minW: 0.5, maxW: 2.0, difficulty: 0.5,  income: 6 },
+  { id: "tuna",     name: "참치",     icon: "🐟", rarity: "rare",     value: 150, minW: 5,   maxW: 20,  difficulty: 0.65, income: 12 },
+  { id: "salmon",   name: "연어",     icon: "🐠", rarity: "rare",     value: 130, minW: 2,   maxW: 8,   difficulty: 0.6,  income: 10 },
+  { id: "shark",    name: "상어",     icon: "🦈", rarity: "legendary",value: 500, minW: 30,  maxW: 120, difficulty: 0.85, income: 40 },
+  { id: "golden",   name: "황금잉어", icon: "🐉", rarity: "legendary",value: 800, minW: 3,   maxW: 10,  difficulty: 0.9,  income: 64 },
 ];
 
 const RARITY_BASE_WEIGHTS = { common: 55, uncommon: 28, rare: 13, legendary: 4 };
+
+const TANK_LEVELS = [
+  { level: 1, capacity: 6,  price: 0 },
+  { level: 2, capacity: 10, price: 300 },
+  { level: 3, capacity: 16, price: 900 },
+  { level: 4, capacity: 24, price: 2500 },
+];
+
+const TANK_MAX_IDLE_SECONDS = 12 * 3600; // 최대 12시간치까지 적립
 
 const ROD_LIST = [
   { id: "wood",   name: "나무 낚싯대",   price: 0,    power: 0.3, tensionMax: 100, reelSpeed: 26, tensionGain: 34, desc: "기본 낚싯대" },
@@ -51,6 +61,9 @@ function defaultState() {
     baitId: "worm",
     baitBag: bagOfBaits,
     dex: {}, // fishId -> { caught: count, bestWeight: number }
+    tankLevel: 1,
+    tank: [], // [{ fishId }]
+    lastCollectTs: Date.now(),
   };
 }
 
@@ -63,6 +76,9 @@ function loadState() {
     return Object.assign(base, parsed, {
       baitBag: Object.assign(base.baitBag, parsed.baitBag || {}),
       dex: parsed.dex || {},
+      tankLevel: parsed.tankLevel || 1,
+      tank: Array.isArray(parsed.tank) ? parsed.tank : [],
+      lastCollectTs: typeof parsed.lastCollectTs === "number" ? parsed.lastCollectTs : Date.now(),
     });
   } catch (e) {
     return defaultState();
@@ -79,6 +95,19 @@ let state = loadState();
 
 function getRod() { return ROD_LIST.find(r => r.id === state.rodId); }
 function getBait() { return BAIT_LIST.find(b => b.id === state.baitId); }
+function getFish(id) { return FISH_LIST.find(f => f.id === id); }
+function getTankLevelInfo() { return TANK_LEVELS[state.tankLevel - 1]; }
+function getTankCapacity() { return getTankLevelInfo().capacity; }
+
+function tankIncomePerMin() {
+  return state.tank.reduce((sum, entry) => sum + (getFish(entry.fishId)?.income || 0), 0);
+}
+
+function pendingTankEarnings() {
+  const elapsedSec = Math.max(0, (Date.now() - state.lastCollectTs) / 1000);
+  const cappedSec = Math.min(elapsedSec, TANK_MAX_IDLE_SECONDS);
+  return Math.floor(cappedSec * (tankIncomePerMin() / 60));
+}
 
 // ===================== 캔버스 / 렌더링 =====================
 
@@ -216,7 +245,15 @@ const el = {
   bigMessage: document.getElementById("bigMessage"),
   rodShopList: document.getElementById("rodShopList"),
   baitShopList: document.getElementById("baitShopList"),
+  tankShopList: document.getElementById("tankShopList"),
   dexList: document.getElementById("dexList"),
+  catchDecision: document.getElementById("catchDecision"),
+  sellBtn: document.getElementById("sellBtn"),
+  tankBtn: document.getElementById("tankBtn"),
+  tankCapacityInfo: document.getElementById("tankCapacityInfo"),
+  tankView: document.getElementById("tankView"),
+  tankIncomeInfo: document.getElementById("tankIncomeInfo"),
+  collectBtn: document.getElementById("collectBtn"),
 };
 
 function pickWeighted(items, weightFn) {
@@ -262,6 +299,7 @@ const game = {
   waitTimer: 0,
   biteWindow: 0,
   hookedFish: null, // { fish, castPower }
+  pendingCatch: null, // { fish, weight, earned }
   reel: { tension: 0, distance: 0, holding: false, surgeTimer: 0, surgeActive: false },
 
   startCasting() {
@@ -330,7 +368,6 @@ const game = {
   },
 
   finishReelSuccess() {
-    if (this.reel.holding) ignoreNextClick = true;
     const fish = this.hookedFish.fish;
     const weight = (fish.minW + Math.random() * (fish.maxW - fish.minW));
     const rec = state.dex[fish.id] || { caught: 0, bestWeight: 0 };
@@ -338,17 +375,49 @@ const game = {
     rec.bestWeight = Math.max(rec.bestWeight, weight);
     state.dex[fish.id] = rec;
     const earned = Math.round(fish.value * (0.8 + weight / fish.maxW * 0.6));
+    saveState();
+    renderDex();
+    showBigMessage(`${fish.icon} ${fish.name} 포획!`, 1200);
+
+    this.pendingCatch = { fish, weight, earned };
+    this.state = "caughtDecision";
+    el.reelingUI.classList.add("hidden");
+    el.actionBtn.classList.add("hidden");
+    el.statusText.textContent = `${fish.name} (${weight.toFixed(2)}kg) 포획!`;
+
+    const tankFull = state.tank.length >= getTankCapacity();
+    el.sellBtn.textContent = `판매하기 (+${earned}원)`;
+    el.tankBtn.textContent = tankFull ? `어항에 넣기 (칸 없음)` : `어항에 넣기 (분당 +${fish.income}원)`;
+    el.tankBtn.disabled = tankFull;
+    el.catchDecision.classList.remove("hidden");
+  },
+
+  sellCaught() {
+    if (this.state !== "caughtDecision" || !this.pendingCatch) return;
+    const { fish, earned } = this.pendingCatch;
     state.money += earned;
     saveState();
     updateHeader();
-    renderDex();
-    showBigMessage(`${fish.icon} ${fish.name} 포획!\n+${earned}원`, 1500);
-    el.statusText.textContent = `${fish.name} (${weight.toFixed(2)}kg) 포획! +${earned}원`;
+    showBigMessage(`+${earned}원`, 900);
+    el.statusText.textContent = `${fish.name} 판매 완료! +${earned}원`;
+    this.pendingCatch = null;
+    this.resetToIdle();
+  },
+
+  putCaughtInTank() {
+    if (this.state !== "caughtDecision" || !this.pendingCatch) return;
+    if (state.tank.length >= getTankCapacity()) return;
+    const { fish } = this.pendingCatch;
+    state.tank.push({ fishId: fish.id });
+    saveState();
+    renderTank();
+    showBigMessage(`${fish.icon} 어항에 넣었습니다!`, 900);
+    el.statusText.textContent = `${fish.name}을(를) 어항에 넣었습니다. 분당 +${fish.income}원 획득!`;
+    this.pendingCatch = null;
     this.resetToIdle();
   },
 
   failCatch(msg) {
-    if (this.reel.holding) ignoreNextClick = true;
     showBigMessage("놓쳤다...", 1000);
     el.statusText.textContent = msg + " 다시 던져보세요.";
     this.resetToIdle();
@@ -361,6 +430,8 @@ const game = {
     this.bobber.y = ROD_TIP.y;
     el.reelingUI.classList.add("hidden");
     el.powerMeterWrap.classList.add("hidden");
+    el.catchDecision.classList.add("hidden");
+    el.actionBtn.classList.remove("hidden");
     el.actionBtn.disabled = false;
     el.actionBtn.textContent = "낚싯대 던지기";
   },
@@ -443,36 +514,46 @@ const game = {
 
 // ===================== 입력 처리 =====================
 
-let ignoreNextClick = false;
-
-el.actionBtn.addEventListener("click", () => {
-  if (ignoreNextClick) { ignoreNextClick = false; return; }
-  if (game.state === "idle") {
-    game.startCasting();
-  } else if (game.state === "casting") {
-    game.lockCasting();
-  } else if (game.state === "bite") {
-    game.hookSet(true);
-  }
-});
-
-function reelDown(ev) {
+// actionBtn is overloaded (advance the state machine / hold-to-reel), so all of
+// its logic lives on press (mousedown/touchstart), not "click" — a synthetic
+// click needs both a down and an up to land on the same, still-visible element,
+// which isn't guaranteed here since the button can hide itself mid-hold the
+// instant a fish is landed.
+function handleActionPress(ev) {
+  if (ev.type === "touchstart") ev.preventDefault();
   if (game.state === "reeling") {
-    ev.preventDefault();
     game.reel.holding = true;
+    return;
   }
+  if (game.state === "idle") game.startCasting();
+  else if (game.state === "casting") game.lockCasting();
+  else if (game.state === "bite") game.hookSet(true);
 }
-function reelUp() {
+function handleActionRelease() {
   game.reel.holding = false;
 }
-el.actionBtn.addEventListener("mousedown", reelDown);
-el.actionBtn.addEventListener("touchstart", reelDown, { passive: false });
-window.addEventListener("mouseup", reelUp);
-window.addEventListener("touchend", reelUp);
+el.actionBtn.addEventListener("mousedown", handleActionPress);
+el.actionBtn.addEventListener("touchstart", handleActionPress, { passive: false });
+window.addEventListener("mouseup", handleActionRelease);
+window.addEventListener("touchend", handleActionRelease);
+
+el.sellBtn.addEventListener("click", () => game.sellCaught());
+el.tankBtn.addEventListener("click", () => game.putCaughtInTank());
+el.collectBtn.addEventListener("click", () => {
+  const amount = pendingTankEarnings();
+  if (amount <= 0) return;
+  state.money += amount;
+  state.lastCollectTs = Date.now();
+  saveState();
+  updateHeader();
+  renderTank();
+  showBigMessage(`+${amount}원 수금!`, 900);
+});
 
 window.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     e.preventDefault();
+    if (e.repeat) return;
     if (game.state === "idle") game.startCasting();
     else if (game.state === "casting") game.lockCasting();
     else if (game.state === "bite") game.hookSet(true);
@@ -491,6 +572,7 @@ document.querySelectorAll(".tabBtn").forEach(btn => {
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+    if (btn.dataset.tab === "aquarium") renderTank();
   });
 });
 
@@ -587,6 +669,92 @@ function renderShop() {
     div.appendChild(btn);
     el.baitShopList.appendChild(div);
   });
+
+  el.tankShopList.innerHTML = "";
+  const curLevelInfo = getTankLevelInfo();
+  const nextLevelInfo = TANK_LEVELS[state.tankLevel]; // level index === next level - 1
+  const curDiv = document.createElement("div");
+  curDiv.className = "shopItem equipped";
+  curDiv.innerHTML = `
+    <div class="info">
+      <span class="name">어항 Lv.${curLevelInfo.level}</span>
+      <span class="desc">현재 수용량 ${curLevelInfo.capacity}칸</span>
+    </div>
+  `;
+  el.tankShopList.appendChild(curDiv);
+
+  if (nextLevelInfo) {
+    const div = document.createElement("div");
+    div.className = "shopItem";
+    div.innerHTML = `
+      <div class="info">
+        <span class="name">어항 Lv.${nextLevelInfo.level}로 확장</span>
+        <span class="desc">수용량 ${nextLevelInfo.capacity}칸으로 증가</span>
+      </div>
+    `;
+    const btn = document.createElement("button");
+    btn.textContent = `구매 (${nextLevelInfo.price}원)`;
+    btn.disabled = state.money < nextLevelInfo.price;
+    btn.addEventListener("click", () => {
+      if (state.money < nextLevelInfo.price) return;
+      state.money -= nextLevelInfo.price;
+      state.tankLevel = nextLevelInfo.level;
+      saveState();
+      updateHeader();
+      renderShop();
+      renderTank();
+    });
+    div.appendChild(btn);
+    el.tankShopList.appendChild(div);
+  }
+}
+
+function renderTank() {
+  const capacity = getTankCapacity();
+  el.tankCapacityInfo.textContent = `수용량 ${state.tank.length} / ${capacity}칸`;
+
+  el.tankView.innerHTML = "";
+  if (state.tank.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "tankEmpty";
+    empty.textContent = "어항이 비어있어요. 물고기를 잡아서 넣어보세요!";
+    el.tankView.appendChild(empty);
+  } else {
+    state.tank.forEach((entry, idx) => {
+      const fish = getFish(entry.fishId);
+      if (!fish) return;
+      const div = document.createElement("div");
+      div.className = "tankFish";
+      const top = 10 + (idx % 5) * 18 + Math.random() * 6;
+      const left = 5 + Math.random() * 70;
+      const dist = 20 + Math.random() * 40;
+      const duration = 3 + Math.random() * 3;
+      div.style.top = top + "%";
+      div.style.left = left + "%";
+      div.style.setProperty("--swimDist", dist + "px");
+      div.style.animationDuration = duration + "s";
+      div.title = `${fish.name} · 분당 +${fish.income}원 (클릭해서 판매: +${fish.value}원)`;
+      div.textContent = fish.icon;
+      div.addEventListener("click", () => {
+        state.money += fish.value;
+        state.tank.splice(idx, 1);
+        saveState();
+        updateHeader();
+        renderTank();
+        renderShop();
+        showBigMessage(`${fish.name} 판매! +${fish.value}원`, 900);
+      });
+      el.tankView.appendChild(div);
+    });
+  }
+
+  const perMin = tankIncomePerMin();
+  const pending = pendingTankEarnings();
+  el.tankIncomeInfo.innerHTML = `
+    <span>분당 수익: <b>${perMin.toLocaleString()}원</b></span>
+    <span class="pending">누적된 수익: ${pending.toLocaleString()}원</span>
+  `;
+  el.collectBtn.disabled = pending <= 0;
 }
 
 function renderDex() {
@@ -603,14 +771,6 @@ function renderDex() {
     `;
     el.dexList.appendChild(div);
   });
-}
-
-// bait selection needs to fall back if selected bait ran out
-function ensureValidBaitSelection() {
-  const b = getBait();
-  if (!b.infinite && state.baitBag[b.id] <= 0) {
-    state.baitId = "worm";
-  }
 }
 
 // consume bait on cast lock (hook into lockCasting)
@@ -637,4 +797,8 @@ updateHeader();
 renderBaitSelect();
 renderShop();
 renderDex();
+renderTank();
+setInterval(() => {
+  if (document.getElementById("panel-aquarium").classList.contains("active")) renderTank();
+}, 1000);
 requestAnimationFrame(loop);

@@ -44,6 +44,7 @@
       <aside id="sidebar">
         <nav id="tabs">
           <button class="tabBtn active" data-tab="action">낚시</button>
+          <button class="tabBtn" data-tab="aquarium">어항</button>
           <button class="tabBtn" data-tab="shop">상점</button>
           <button class="tabBtn" data-tab="dex">도감</button>
         </nav>
@@ -55,6 +56,20 @@
             <select id="baitSelect"></select>
           </div>
           <button id="actionBtn" class="primaryBtn">낚싯대 던지기</button>
+
+          <div id="catchDecision" class="hidden">
+            <p class="catchDecisionTitle">이 물고기, 어떻게 할까요?</p>
+            <button id="sellBtn" class="primaryBtn good"></button>
+            <button id="tankBtn" class="primaryBtn"></button>
+          </div>
+        </div>
+
+        <div id="panel-aquarium" class="panel">
+          <h2>🐠 어항</h2>
+          <div id="tankCapacityInfo" class="tankCapacityInfo"></div>
+          <div id="tankView" class="tankView"></div>
+          <div id="tankIncomeInfo" class="tankIncomeInfo"></div>
+          <button id="collectBtn" class="primaryBtn good">수금하기</button>
         </div>
 
         <div id="panel-shop" class="panel">
@@ -63,6 +78,8 @@
           <div id="rodShopList" class="shopList"></div>
           <h3>미끼</h3>
           <div id="baitShopList" class="shopList"></div>
+          <h3>어항 확장</h3>
+          <div id="tankShopList" class="shopList"></div>
         </div>
 
         <div id="panel-dex" class="panel">

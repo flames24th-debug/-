@@ -306,6 +306,91 @@ body {
 .dexItem .rarity { font-size: 10px; color: var(--muted); }
 .dexItem .count { font-size: 10px; color: var(--accent2); }
 
+#catchDecision {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.catchDecisionTitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  text-align: center;
+}
+
+.tankCapacityInfo {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tankView {
+  position: relative;
+  height: 160px;
+  background: linear-gradient(180deg, #123a55, #0a1f30);
+  border: 1px solid #22456f;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tankFish {
+  position: absolute;
+  font-size: 22px;
+  animation: swim linear infinite;
+  cursor: pointer;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+}
+
+.tankFish .sellHint {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tankFish:hover .sellHint {
+  opacity: 1;
+}
+
+@keyframes swim {
+  0%   { transform: translateX(0) scaleX(1); }
+  49%  { transform: translateX(var(--swimDist)) scaleX(1); }
+  50%  { transform: translateX(var(--swimDist)) scaleX(-1); }
+  99%  { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+.tankEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+.tankIncomeInfo {
+  font-size: 13px;
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tankIncomeInfo .pending {
+  color: var(--accent2);
+  font-weight: bold;
+}
+
 @media (max-width: 800px) {
   #main { flex-direction: column; }
   #sidebar { width: 100%; }
