@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>낚시겜 - Fishing Game</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🎣</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <h1>🎣 낚시겜</h1>
+      <div id="stats">
+        <span class="stat">💰 <b id="moneyValue">0</b>원</span>
+        <span class="stat">🎒 <b id="rodValue">-</b></span>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="stage">
+        <canvas id="game" width="800" height="480"></canvas>
+
+        <div id="powerMeterWrap" class="hidden">
+          <div class="label">캐스팅 파워</div>
+          <div id="powerMeterOuter"><div id="powerMeterFill"></div></div>
+        </div>
+
+        <div id="reelingUI" class="hidden">
+          <div id="surgeWarning" class="hidden">⚠ 물고기가 강하게 저항 중! 릴을 놓으세요!</div>
+          <div class="gauge">
+            <div class="label">긴장도 (텐션)</div>
+            <div class="gaugeOuter"><div id="tensionFill" class="gaugeFill tension"></div></div>
+          </div>
+          <div class="gauge">
+            <div class="label">거리</div>
+            <div class="gaugeOuter"><div id="distanceFill" class="gaugeFill distance"></div></div>
+          </div>
+        </div>
+
+        <div id="bigMessage" class="hidden"></div>
+      </section>
+
+      <aside id="sidebar">
+        <nav id="tabs">
+          <button class="tabBtn active" data-tab="action">낚시</button>
+          <button class="tabBtn" data-tab="shop">상점</button>
+          <button class="tabBtn" data-tab="dex">도감</button>
+        </nav>
+
+        <div id="panel-action" class="panel active">
+          <p id="statusText">낚싯대를 던져보세요!</p>
+          <div id="baitSelectWrap">
+            <label for="baitSelect">미끼 선택</label>
+            <select id="baitSelect"></select>
+          </div>
+          <button id="actionBtn" class="primaryBtn">낚싯대 던지기</button>
+        </div>
+
+        <div id="panel-shop" class="panel">
+          <h2>🛒 상점</h2>
+          <h3>낚싯대</h3>
+          <div id="rodShopList" class="shopList"></div>
+          <h3>미끼</h3>
+          <div id="baitShopList" class="shopList"></div>
+        </div>
+
+        <div id="panel-dex" class="panel">
+          <h2>📖 물고기 도감</h2>
+          <div id="dexList" class="dexList"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
