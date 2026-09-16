@@ -86,9 +86,14 @@ function loadState() {
 }
 
 function saveState() {
-  const toSave = JSON.parse(JSON.stringify(state, (k, v) => (v === Infinity ? "Infinity" : v)));
-  // restore Infinity markers on the fly not needed since we re-derive infinite baits on load
-  localStorage.setItem(SAVE_KEY, JSON.stringify(toSave));
+  // localStorage can throw (private browsing, blocked third-party storage in a
+  // sandboxed embed, etc). A crash here must never take down the game loop —
+  // worst case, progress just doesn't persist across reloads.
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn("저장 실패 (localStorage 접근 불가):", e);
+  }
 }
 
 let state = loadState();
